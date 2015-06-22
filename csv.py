@@ -127,6 +127,10 @@ class CSVReader(object):
         return self.row(row)[col]
 
 
+    def rowValues(self, heading):
+        return self.row(self.col(0).index(heading))
+
+
 
 class CSVeditor(object):
 
@@ -371,14 +375,14 @@ class CSVStatistics(object):
 ##                if element in headings1[j+1]:
 ##                    final.append(element)
 
-    def ColumnBarChart(self):
+    def columnBarChart(self, filename, xaxis, yaxis):
         '''
         Generates a bar chart to show the usefulness of each column in terms of percentage of filled entries.
         '''
         data = Data([
         Bar(
-        x=self.row(0),
-        y=self.categoryCounter('percentage'))
+        x=self.R.row(0),
+        y=self.categoryCounter())
         ])
         layout = Layout(
             title=' Percentage of filled entries in each column in' + str(self.fname),
@@ -397,6 +401,24 @@ class CSVStatistics(object):
         )
         fig = Figure(data=data, layout=layout)
         plot_url = py.plot(fig, filename=filename)
+
+    def categoryCounter(self):
+        if self.R.hasColumnHeadings():
+            start = 1
+        else:
+            start = 0
+        usefulColumns = [0] * self.R.nCols()
+        for row in self.R.csv[start:]:
+            for i in range(len(row)):
+                entry = row[i]
+                if entry != '':
+                    usefulColumns[i] += 1
+        nRows = self.R.nRows()
+        for i in range(len(usefulColumns)):
+            usefulColumns[i] *= nRows
+        return usefulColumns
+
+        
     def schoolsCategoryCounter(self, numberORpercentage):
         '''
         returns a lsit od length 10. Each index of the list represents a percentage category.
@@ -467,14 +489,15 @@ class CSVStatistics(object):
                 Id=school[0]
                 years[year].append(Id)    
 
-    def rowBarChart(self, filename):
+    def rowBarChart(self, filename, xaxis, yaxis):
+          
         data = Data([
         Bar(
         x=['(0-10)%', '(10-20)%', '(20-30)%', '(30-40)%', '(40-50)%', '(50-60)%', '(60-70)%', '(70-80)%', '(80-90)%', '(90-100)%'],
         y=self.schoolsCategoryCounter('percentage'))
         ])
         layout = Layout(
-            title=' Percentage of filled entries in each column in' + str(self.fname),
+            title=' Percentage of filled entries in each row in' + str(self.fname),
             xaxis=XAxis(
                 title=xaxis,
                 titlefont=Font(
@@ -488,9 +511,6 @@ class CSVStatistics(object):
                 )
             )
         )
-        fig = Figure(data=data, layout=layout)
-        plot_url = py.plot(fig, filename=filename)
-
     def percentageCategorizer(self, count):
         noCols = self.R.nCols()
         return count*10//noCols
@@ -536,6 +556,7 @@ class Stage1Analyzer(object):
         self.R=CSVReader(fname)
 
     def generateTable(self,name='table.csv', categoryReq='TotalEnrollment', rowHeading='District', colHeading='Year'):
+        ### not specified?
         table=open(name, 'w')
         cols=self.R.uniqueElement(colHeading)
         rows=self.R.uniqueElement(rowHeading)     
@@ -563,6 +584,7 @@ class Stage1Analyzer(object):
                         print(heading)
                table.write('\n')
         table.close()
+        return name
                    
 
     def columnMatch(self, category1,category1Val, category2, category2Val, categoryReq):
@@ -575,6 +597,110 @@ class Stage1Analyzer(object):
                        match=self.R.value(row, categoryReq)
                        categoryReqVals.append(match)
         return categoryReqVals
+
+
+    def districtLinePlot(self):
+        ## district argument?
+        name=self.generateTable()
+        table=open(name, 'r')
+        reader=CSVReader(name)
+        districts=reader.col(0)[1:]
+        print(districts)
+        xlist = reader.row(0)[1:]
+        print(xlist)
+        for item in districts:
+            ylist=reader.rowValues(item)[1:]
+            for y in range(len(ylist)):
+                ylist[y]=int(ylist[y])                
+            print(ylist)
+            trace = Scatter(x=xlist, y=ylist)
+            data = Data([trace])
+            plot_url = py.plot(data, filename=item+'lineplot')
+
+
+    def graph(self):
+
+        trace1 = Scatter(
+            x=[52698, 43117],
+            y=[53, 31],
+            mode='markers',
+            name='North America',
+            text=['United States', 'Canada'],
+            marker=Marker(
+                color='rgb(164, 194, 244)',
+                size=12,
+                line=Line(
+                    color='white',
+                    width=0.5
+                )
+            )
+        )
+        trace2 = Scatter(
+            x=[39317, 37236, 35650, 30066, 29570, 27159, 23557, 21046, 18007],
+            y=[33, 20, 13, 19, 27, 19, 49, 44, 38],
+            mode='markers',
+            name='Europe',
+            text=['Germany', 'Britain', 'France', 'Spain', 'Italy', 'Czech Rep.', 'Greece', 'Poland'],
+            marker=Marker(
+                color='rgb(255, 217, 102)',
+                size=12,
+                line=Line(
+                    color='white',
+                    width=0.5
+                )
+            )
+        )
+        trace3 = Scatter(
+            x=[42952, 37037, 33106, 17478, 9813, 5253, 4692, 3899],
+            y=[23, 42, 54, 89, 14, 99, 93, 70],
+            mode='markers',
+            name='Asia/Pacific',
+            text=['Australia', 'Japan', 'South Korea', 'Malaysia', 'China', 'Indonesia', 'Philippines', 'India'],
+            marker=Marker(
+                color='rgb(234, 153, 153)',
+                size=12,
+                line=Line(
+                    color='white',
+                    width=0.5
+                )
+            )
+        )
+        trace4 = Scatter(
+            x=[19097, 18601, 15595, 13546, 12026, 7434, 5419],
+            y=[43, 47, 56, 80, 86, 93, 80],
+            mode='markers',
+            name='Latin America',
+            text=['Chile', 'Argentina', 'Mexico', 'Venezuela', 'Venezuela', 'El Salvador', 'Bolivia'],
+            marker=Marker(
+                color='rgb(142, 124, 195)',
+                size=12,
+                line=Line(
+                    color='white',
+                    width=0.5
+                )
+            )
+        )
+        data = Data([trace1, trace2, trace3, trace4])
+        layout = Layout(
+            title='Quarter 1 Growth',
+            xaxis=XAxis(
+                title='GDP per Capita',
+                showgrid=False,
+                zeroline=False
+            ),
+            yaxis=YAxis(
+                title='Percent',
+                showline=False
+            )
+        )
+        fig = Figure(data=data, layout=layout)
+        plot_url = py.plot(fig, filename='line-style')
+
+            
+            
+        
+        
+        
             
                        
                    
