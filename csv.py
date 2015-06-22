@@ -7,7 +7,7 @@ class CSVReader(object):
     '''Extracts informtion from a csv file.'''
 
     def __init__(self, fname=None):
-        '''Constructor - opens the input file and gets ready to parse it.'''
+        '''Constructor - opens the input file.'''
         if fname == None:
             return
         entry = ''
@@ -600,7 +600,7 @@ class Stage1Analyzer(object):
 
 
     def districtLinePlot(self):
-        ## district argument?
+        ## district argument???
         name=self.generateTable()
         table=open(name, 'r')
         reader=CSVReader(name)
@@ -615,7 +615,7 @@ class Stage1Analyzer(object):
             print(ylist)
             trace = Scatter(x=xlist, y=ylist)
             data = Data([trace])
-            plot_url = py.plot(data, filename=item+'lineplot')
+            plot_url  =  py.plot(data, filename=item+'lineplot')
 
 
               
