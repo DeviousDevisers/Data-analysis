@@ -1,5 +1,6 @@
+
 Row Bar-charts:
-//Show the percentage of schools that fall into one of ten categories. Each category represents the percentage of data available.
+//Show the percentage of schools that fall into one of ten categories. Each category represents the percentage of data available.//
 
 SchoolDetailedInfo:
 https://plot.ly/~deviousdevisers/20/percentage-of-filled-entries-in-each-row-inschooldetailedinfocsv/
@@ -14,7 +15,7 @@ https://plot.ly/~deviousdevisers/24/percentage-of-filled-entries-in-each-row-inw
 
 
 Column Bar-Charts:
-//Show the percentage of filled entries in each column.
+//Show the percentage of filled entries in each column.//
 
 SchoolDetailedInfo:
 https://plot.ly/~deviousdevisers/13/percentage-of-filled-entries-in-each-column-inschooldetailedinfocsv/
