@@ -1,4 +1,3 @@
-
 Row Bar-charts:
 //Show the percentage of schools that fall into one of ten categories. Each category represents the percentage of data available.//
 
