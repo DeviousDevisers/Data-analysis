@@ -14,7 +14,7 @@ https://plot.ly/~deviousdevisers/24/percentage-of-filled-entries-in-each-row-inw
 
 
 Column Bar-Charts:
-//Show the percentage of filled entries in each column,.
+//Show the percentage of filled entries in each column.
 
 SchoolDetailedInfo:
 https://plot.ly/~deviousdevisers/13/percentage-of-filled-entries-in-each-column-inschooldetailedinfocsv/
