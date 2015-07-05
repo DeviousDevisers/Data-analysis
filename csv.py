@@ -1,13 +1,21 @@
+
 import plotly; plotly.tools.set_credentials_file(username='deviousdevisers', api_key='2893d9w6uc')
 import plotly.plotly as py
 from plotly.graph_objs import *
-
+from datetime import datetime
+import matplotlib.pyplot as plt
+from matplotlib import pylab
+import pylab as pl
+import matplotlib.mlab as mlab
+from pylab import *
+import numpy as np
 
 class CSVReader(object):
     '''Extracts informtion from a csv file.'''
 
     def __init__(self, fname=None):
-        '''Constructor - opens the input file.'''
+        '''Constructor - opens the input file and gets ready to parse it.'''
+        self.fname = fname
         if fname == None:
             return
         entry = ''
@@ -87,12 +95,13 @@ class CSVReader(object):
         column = []
         for row in self.csv:
             column.append(row[n])
+##        if self.hasColumnHeadings():
+##            return column[1:]
+##        else:
         return column
             
     
     def uniqueElement(self, heading):
-        ''' returns a list with the unique elements in the column with the given heading
-        '''
         uniqueElements=[]
         for element in self.values(heading):
             if element not in uniqueElements:
@@ -110,8 +119,16 @@ class CSVReader(object):
             if entry.isnumeric() :
                 return False
         return True           
-      
-            
+
+    def mixedIdList(self):
+        schoolIdList = self.values('SchoolId')
+        yearIdList = self.values('YearId')
+        mergedList = []
+        for i in range(len(schoolIdList)):
+            mergedId = schoolIdList[i] + '-' + yearIdList[i]
+            mergedList.append(mergedId)
+        return mergedList
+
     def values(self, heading):
         '''
         Makes a list with the elements in a column given the heading of the column.'''
@@ -126,11 +143,12 @@ class CSVReader(object):
             col = self.row(0).index(col)
         return self.row(row)[col]
 
-
     def rowValues(self, heading):
         return self.row(self.col(0).index(heading))
-
-
+    
+    def dataOfId(self, mergedId, mergedList, columnName):
+        index = mergedList.index(mergedId)
+        return self.value(index, columnName)
 
 class CSVeditor(object):
 
@@ -145,7 +163,7 @@ class CSVeditor(object):
         fname=self.fname
         newColumn = column1 + '-' + column2
         newFile = open(fname+ 'w')
-        firstRow = self.R.row(0)
+        firstRow = R.row(0)
         index1 = firstRow.index(column1)
         index2 = firstRow.index(column2)
         for element in firstRow:
@@ -154,9 +172,9 @@ class CSVeditor(object):
             elif element == column1:
                 newFile.write(newColumn+',')
         newFile.write('\n')
-        for row in range(self.R.nRows()-1):
+        for row in range(R.nRows()-1):
             try:
-                currentRow = self.R.row(row+1)
+                currentRow = R.row(row+1)
                 if currentRow == ['']:
                     continue
                 lastRow = currentRow
@@ -185,10 +203,11 @@ class CSVeditor(object):
         yearIdList2 = file2.values('YearId')
         mergedList1 = []
         mergedList2 = []
-        for i in range(len(SchoolId)):
+        for i in range(len(schoolIdList1)):
             mergedId1 = schoolIdList1[i] + '-' + yearIdList1[i]
-            mergedId2 = schoolIdList2[i] + '-' + yearIdList2[i]
             mergedList1.append(mergedId1)
+        for i in range(len(schoolIdList2)):
+            mergedId2 = schoolIdList2[i] + '-' + yearIdList2[i]
             mergedList2.append(mergedId2)
         for j in mergedList1:
             if j not in mergedList2:
@@ -198,6 +217,23 @@ class CSVeditor(object):
         for k in mergedList2:
             extraIdList.append(file2.fname + '-' + k)
         return extraIdList
+
+
+    def uniqueId(self,fname):
+        doubleId = []
+        file = CSVReader(fname)
+        schoolIdList = file.values('SchoolId')
+        yearIdList = file.values('YearId')
+        mergedList = []
+        for i in range(len(schoolIdList)):
+            mergedId = schoolIdList[i] + '-' + yearIdList[i]
+            if mergedId not in mergedList:
+                mergedList.append(mergedId)
+            else:
+                doubleId.append(mergedId)
+        return doubleId
+
+    
 
 
     def merger2(self,listOfColumns,newColumnName):
@@ -231,7 +267,63 @@ class CSVeditor(object):
                     newFile.write(R.row(row)[i]+a)
 
     
-    
+    def commonColumns(self,fname1,fname2):
+        final = []
+        file1 = CSVReader(fname1)
+        file2 = CSVReader(fname2)
+        headings1 = file1.row(0)
+        headings2 = file2.row(0)
+        for i in headings1:
+            if i in headings2:
+                final.append(i)
+        final.remove('SchoolId')
+        final.remove('YearId')
+        return final
+
+    def extraIds(self,fname):
+        file = CSVReader(fname)
+        missingIds = []
+        schoolIds = file.uniqueElement('SchoolId')[1:]
+        yearIds = file.uniqueElement('YearId')[1:]
+        schoolIdList = file.values('SchoolId')
+        yearIdList = file.values('YearId')
+        print(len(schoolIds),len(yearIds), yearIds, len(schoolIds)* len(yearIds))
+        mergedList = []
+        for i in range(len(schoolIdList)):
+            mergedId = schoolIdList[i] + '-' + yearIdList[i]
+            mergedList.append(mergedId)
+        print (len(mergedList))
+        return len(schoolIds)* len(yearIds)-len(mergedList)
+        for school in schoolIds:
+            for year in yearIds:
+                mergedItem = school + '-' + year
+                if mergedItem not in mergedList:
+                    missingIds.append(mergedItem)
+        return len(missingIds)
+
+
+    def dataCorrectness(self,fname1,fname2):
+        listOfColumns = self.commonColumns(fname1,fname2)
+        file1 = CSVReader(fname1)
+        file2 = CSVReader(fname2)
+        mergedIds1 = file1.mixedIdList()
+        mergedIds2 = file2.mixedIdList()
+        for column in listOfColumns:
+            incorrectData = [column]
+            for i in mergedIds1:
+                if i in mergedIds2:
+                    data1 = file1.dataOfId(i,mergedIds1,column)
+                    data2 = file2.dataOfId(i,mergedIds2,column)
+                    if data1 != data2:
+                        incorrectData.append({fname1+'-'+i+'-'+data1,fname2+'-'+i+'-'+data2})
+            print(incorrectData)       
+
+
+    def allCorrectness(self):
+        self.dataCorrectness('SchoolDetailedInfo.csv','WorkingNonTeachingStaff.csv')
+        print('pappu')
+        self.dataCorrectness('WorkingTeachingStaff.csv','WorkingNonTeachingStaff.csv')
+
 
 ##    def uniqueId(self,*filelist):
 ##        final=[]
@@ -301,10 +393,8 @@ class CSVeditor(object):
         
 class CSVStatistics(object):
 
-    def __init__(self, fname):
-        
+    def __init__(self, fname=None):
         self.R=CSVReader(fname)
-        self.E=CSVReader(fname)
         self.fname=fname
         
 
@@ -375,6 +465,23 @@ class CSVStatistics(object):
 ##                if element in headings1[j+1]:
 ##                    final.append(element)
 
+    def categoryCounter(self):
+        if self.R.hasColumnHeadings():
+            start = 1
+        else:
+            start = 0
+        usefulColumns = [0] * self.R.nCols()
+        for row in self.R.csv[start:]:
+            for i in range(len(row)):
+                entry = row[i]
+                if entry != '':
+                    usefulColumns[i] += 1
+        nRows = self.R.nRows()
+        for i in range(len(usefulColumns)):
+            usefulColumns[i] *= nRows
+        return usefulColumns
+
+
     def columnBarChart(self, filename, xaxis, yaxis):
         '''
         Generates a bar chart to show the usefulness of each column in terms of percentage of filled entries.
@@ -402,23 +509,6 @@ class CSVStatistics(object):
         fig = Figure(data=data, layout=layout)
         plot_url = py.plot(fig, filename=filename)
 
-    def categoryCounter(self):
-        if self.R.hasColumnHeadings():
-            start = 1
-        else:
-            start = 0
-        usefulColumns = [0] * self.R.nCols()
-        for row in self.R.csv[start:]:
-            for i in range(len(row)):
-                entry = row[i]
-                if entry != '':
-                    usefulColumns[i] += 1
-        nRows = self.R.nRows()
-        for i in range(len(usefulColumns)):
-            usefulColumns[i] *= nRows
-        return usefulColumns
-
-        
     def schoolsCategoryCounter(self, numberORpercentage):
         '''
         returns a lsit od length 10. Each index of the list represents a percentage category.
@@ -439,9 +529,9 @@ class CSVStatistics(object):
             usefulRows[category] += 1
             count = 0
         usefulRowsPercentage = []
-        nRows = self.R.nRows()[start:]
+        nRows = self.R.nRows()-1
         for item in usefulRows:
-            itemPercentage = item*100//nRows
+            itemPercentage = item*100/nRows
             usefulRowsPercentage.append(itemPercentage)
         if numberORpercentage == 'number':
             return usefulRows
@@ -490,7 +580,6 @@ class CSVStatistics(object):
                 years[year].append(Id)    
 
     def rowBarChart(self, filename, xaxis, yaxis):
-          
         data = Data([
         Bar(
         x=['(0-10)%', '(10-20)%', '(20-30)%', '(30-40)%', '(40-50)%', '(50-60)%', '(60-70)%', '(70-80)%', '(80-90)%', '(90-100)%'],
@@ -511,6 +600,10 @@ class CSVStatistics(object):
                 )
             )
         )
+        fig = Figure(data=data, layout=layout)
+        plot_url = py.plot(fig, filename=filename)
+        
+
     def percentageCategorizer(self, count):
         noCols = self.R.nCols()
         return count*10//noCols
@@ -521,8 +614,7 @@ class CSVStatistics(object):
        returns number of filled items in a row
         '''
         count=0
-        self.R.row(rownumber)
-        for element in self.R.row():
+        for element in self.R.row(rownumber):
             element.strip()
             if element != '':
                 count+=1
@@ -553,35 +645,42 @@ class Stage1Analyzer(object):
 
     def __init__(self,fname):
         
-        self.R=CSVReader(fname)
+        self.R = CSVReader(fname)
+        self.fname = fname 
 
-    def generateTable(self,name='table.csv', categoryReq='TotalEnrollment', rowHeading='District', colHeading='Year'):
-        ### not specified?
+    def generateTable(self,headingList=['Average Enrollment', 'Total Enrollment', 'Number of Schools'],name='stable.csv', categoryReq='TotalEnrollment', rowHeading='District', colHeading='Year'):
         table=open(name, 'w')
         cols=self.R.uniqueElement(colHeading)
-        rows=self.R.uniqueElement(rowHeading)     
-        table.write(rowHeading + '-' + colHeading+',')
+        length=len(cols)
+        for heading in headingList:
+            table.write(',' + heading + ','*(length-1))
+        table.write('\n')
+        rows=self.R.uniqueElement(rowHeading)
+        rows.remove('Not Specified')
+        table.write(rowHeading + '-' + colHeading)
         for heading in cols[1:-1]:
-               table.write(heading+',')
-        table.write(cols[-1]+'\n')
+               table.write(','+ heading)* len(headingList)
+        table.write(','+ cols[-1]+'\n')
         rowLen = len(cols)
-        count=0
+        noSchools =[]
+        enrollList = []
         for rowcategory in rows[1:]:
                table.write(rowcategory)
                for heading in cols[1:]:
                    ## heading is the year, ie, 2011-12
-                   list1=self.columnMatch(rowHeading, rowcategory, colHeading, heading, categoryReq)
-                   sum1=0
-                   try:
-                       for enrollment in list1:
-                           if enrollment != '':
-                               sum1+=int(enrollment)
-                       average= sum1//len(list1)
-                       table.write(','+str(average))
-                   except:  
-                        print(list1)
-                        print(rowcategory)
-                        print(heading)
+                   schoolIds=self.columnMatch(rowHeading, rowcategory, colHeading, heading, categoryReq)
+                   noSchools.append(len(schoolIds))
+                   sumEnroll=0
+                   for enrollment in schoolIds:
+                       if enrollment != '':
+                           sumEnroll+=int(enrollment)
+                   enrollList.append(sumEnroll)
+                   average= sumEnroll//len(schoolIds)
+                   table.write(','+str(average))
+               for enroll in enrollList:
+                   table.write(','+str(enroll))
+               for length in noSchools:
+                   table.write(','+str(length))
                table.write('\n')
         table.close()
         return name
@@ -597,45 +696,216 @@ class Stage1Analyzer(object):
                        match=self.R.value(row, categoryReq)
                        categoryReqVals.append(match)
         return categoryReqVals
-
-
+            
     def districtLinePlot(self):
-        ## district argument???
         name=self.generateTable()
         table=open(name, 'r')
         reader=CSVReader(name)
-        districts=reader.col(0)[1:]
-        print(districts)
-        xlist = reader.row(0)[1:]
-        print(xlist)
-        for item in districts:
-            ylist=reader.rowValues(item)[1:]
-            for y in range(len(ylist)):
-                ylist[y]=int(ylist[y])                
-            print(ylist)
-            trace = Scatter(x=xlist, y=ylist)
-            data = Data([trace])
-            plot_url  =  py.plot(data, filename=item+'lineplot')
+        x=reader.csv[1][1:6]
+        xaxis=[]
+        for i in x:
+            i=int(i[-2:])
+            xaxis.append(i)
+        ma=[]
+        mb=[]
+        mc=[]
+        for row in reader.csv[2:]:
+            district=row[0]
+            y=row[1:6]
+            y1=[]
+            for i in y:
+                i=int(i)
+                y1.append(i)
+            y=row[6:11]
+            y2=[]
+            for i in y:
+                i=int(i)
+                y2.append(i)
+            y=row[11:16]
+            y3=[]
+            for i in y:
+                i=int(i)
+                y3.append(i)
+            (m1,b1) = polyfit(xaxis,y1,1)
+            (m2,b2) = polyfit(xaxis,y2,1)
+            (m3,b3) = polyfit(xaxis,y3,1)
+            ma.append((m1, district))
+            mb.append((m2, district))
+            mc.append((m3, district))
+            yp1 = polyval([m1,b1],xaxis)
+            yp2 = polyval([m2,b2],xaxis)
+            yp3 = polyval([m3,b3],xaxis)
+            plot(xaxis,yp1)
+##            plot(xaxis,yp2)
+##            plot(xaxis,yp3)
+            scatter(xaxis,y1)
+##            scatter(xaxis,y2)
+##            scatter(xaxis,y3)
+            grid(True)
+            xlabel('Year')
+            ylabel('Average Enrollment')
+            title('Average Enrollment for ' + district)
+##            show()
+        return [ma, mb, mc]
+                
+    
+                   
+    def districtDataPercentage(self,district,yearId):
+        schools = self.columnMatch('District', district, 'YearId', yearId, 'SchoolId')
+        print (len(schools))
+        stats = CSVStatistics(self.fname)
+        schoolList=self.R.values('SchoolId')
+        yearList=self.R.values('YearId')
+        totalFilled = 0
+        for school in schools:
+            yearStart = yearList.index(yearId)
+            rowNumber = schoolList[yearStart:].index(school) + yearStart
+            filledItems = stats.rowFill(rowNumber)
+            totalFilled = totalFilled + filledItems
+        averageFilled = totalFilled / len(schools)
+        return averageFilled
+    
+
+    def districtWiseBarCharts(self,xaxis='',yaxis='Average Percentage Of Filled Items In Each District'):
+        districts = self.R.uniqueElement('District')[1:]
+        districts.remove('Not Specified')
+        yearIds = self.R.uniqueElement('YearId')[1:]
+        print (districts,yearIds)
+        for year in yearIds:
+            filledColumns = []
+            columnPercentages = []
+            nColumns = self.R.nCols()
+            for district in districts:
+                filledColumns.append(self.districtDataPercentage(district,year))
+            for item in filledColumns:
+                itemPercentage = item*100/nColumns
+                columnPercentages.append(itemPercentage)
+            data = Data([
+            Bar(
+            x=districts,
+            y=columnPercentages)
+            ])
+            layout = Layout(
+                title = 'Percentage of filled entries in each row of each district in the year 20' + str(int(year)-1) + '-' + year,
+                xaxis=XAxis(
+                    title=xaxis,
+                    titlefont=Font(
+                        family='Courier New, monospace'
+                    )
+                ),
+                yaxis=YAxis(
+                    title=yaxis,
+                    titlefont=Font(
+                        family='Courier New, monospace'
+                    )
+                )
+            )
+            fig = Figure(data=data, layout=layout)
+            plot_url = py.plot(fig, filename='District Wise Bar Chart for the year 20' + str(int(year)-1) + '-' + year)
+                
 
 
-              
-        
-        
-        
+    def overallSpatialBar(self,colHeading):
+        districts = self.R.uniqueElement(colHeading)[1:]
+        if 'Not Specified' in districts:
+            districts.remove('Not Specified')
+        length = len(districts)
+        districtCounter = [0] * length
+        fillingCounter = [0] * length
+        averageCounter = [0] * length
+        newDistricts = []
+        stats = CSVStatistics(self.fname)
+        for i in range(len(self.R.csv)):
+            districtName = self.R.value(i,colHeading)
+            if districtName in districts:
+                index = districts.index(districtName)
+                districtCounter[index] += 1
+                fillingCounter[index] += stats.rowFill(i)
+        for i in range(len(fillingCounter)):
+            averageCounter[i] = fillingCounter[i] / districtCounter[i]
+        nCols = self.R.nCols()
+        for i in range(len(averageCounter)):
+            averageCounter[i] = averageCounter[i] * 100 /nCols
+        sortedCounter = sorted(averageCounter)
+        for i in sortedCounter:
+            index = averageCounter.index(i)
+            newDistricts.append(districts[index])
+        data = Data([
+        Bar(
+        x=newDistricts,
+        y=sortedCounter)
+        ])
+        layout = Layout(
+            title = 'Overall Percentage Of Filled Entries In Each ' + colHeading ,
+            xaxis=XAxis(
+                title='',
+                titlefont=Font(
+                    family='Courier New, monospace'
+                )
+            ),
+            yaxis=YAxis(
+                title='Average Percentage Of Filled Items In Each ' + colHeading,
+                titlefont=Font(
+                    family='Courier New, monospace'
+                )
+            )
+        )
+        fig = Figure(data=data, layout=layout)
+        plot_url = py.plot(fig, filename=colHeading + ' Wise Bar Chart For Filled Entries')
             
-                       
-                   
-                   
-            
-    
-        
-                   
-    
-                   
-                   
-    
-        
-        
+    def bara(self):
+        bar = ['CircleOffice','UnionCouncil']
+        for i in bar:
+            self.overallSpatialBar(i)
+
+    def districtSlopePlot(self, xaxis='', yaxis='slope'):
+        m=self.districtLinePlot()
+        avgEnrl=m[0]
+        avgEnrl.sort()
+        ttlEnrl=m[1].sort()
+        noSchools=m[2].sort()
+        x=[]
+        y=[]
+        for i in avgEnrl:
+            slope=i[0]
+            district=i[1]
+            x.append(district)
+            y.append(slope)
+
+        fig = pl.figure()
+        ax = pl.subplot(111)
+        width=0.8
+        ax.bar(range(len(x)), y)
+        ax.set_xticks(np.arange(len(x)) + width/2)
+        ax.set_xticklabels(x, rotation=58)
+        ax.set_title('Average Enrollment Rate for Districts')
+        ax.set_xlabel('District')
+        ax.set_ylabel('Average Enrollment Rate')
+        for item in (ax.get_xticklabels()):
+            item.set_fontsize(8.5)
+        show()
             
 
-        
+
+
+                        
+
+
+    
+
+
+    
+
+
+    
+            
+            
+
+
+
+    
+
+
+    
+            
+            
